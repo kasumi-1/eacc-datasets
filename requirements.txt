@@ -1,0 +1,3 @@
+# Core validation requirements
+jsonschema>=4.17.0
+

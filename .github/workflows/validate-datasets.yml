@@ -1,0 +1,133 @@
+name: Validate Datasets
+
+on:
+  pull_request:
+    paths:
+      - 'datasets/**'
+      - 'scripts/validate.py'
+      - '.github/workflows/validate-datasets.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'datasets/**'
+      - 'scripts/validate.py'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # Fetch all history for proper diff
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install jsonschema
+    
+    - name: Get changed datasets
+      id: changed-datasets
+      run: |
+        if [ "${{ github.event_name }}" = "pull_request" ]; then
+          # For PRs, compare against the base branch
+          git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^datasets/" | cut -d'/' -f1-2 | sort -u > changed_datasets.txt
+        else
+          # For pushes to main, check the last commit
+          git diff --name-only HEAD~1 HEAD | grep "^datasets/" | cut -d'/' -f1-2 | sort -u > changed_datasets.txt
+        fi
+        
+        if [ -s changed_datasets.txt ]; then
+          echo "Changed datasets:"
+          cat changed_datasets.txt
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "No dataset changes detected"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Validate changed datasets
+      if: steps.changed-datasets.outputs.has_changes == 'true'
+      run: |
+        validation_failed=false
+        
+        while IFS= read -r dataset_path; do
+          echo "----------------------------------------"
+          echo "Validating $dataset_path"
+          echo "----------------------------------------"
+          
+          if python scripts/validate.py "$dataset_path"; then
+            echo "✅ $dataset_path validation passed"
+          else
+            echo "❌ $dataset_path validation failed"
+            validation_failed=true
+          fi
+          echo ""
+        done < changed_datasets.txt
+        
+        if [ "$validation_failed" = true ]; then
+          echo "❌ One or more datasets failed validation"
+          exit 1
+        else
+          echo "✅ All datasets validated successfully"
+        fi
+    
+    - name: Validate all datasets (on push to main)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "Running full validation on main branch..."
+        validation_failed=false
+        
+        for dataset_dir in datasets/*/; do
+          if [ -d "$dataset_dir" ]; then
+            echo "----------------------------------------"
+            echo "Validating $dataset_dir"
+            echo "----------------------------------------"
+            
+            if python scripts/validate.py "$dataset_dir"; then
+              echo "✅ $dataset_dir validation passed"
+            else
+              echo "❌ $dataset_dir validation failed"
+              validation_failed=true
+            fi
+            echo ""
+          fi
+        done
+        
+        if [ "$validation_failed" = true ]; then
+          echo "❌ One or more datasets failed validation"
+          exit 1
+        else
+          echo "✅ All datasets validated successfully"
+        fi
+    
+    - name: Comment on PR
+      if: failure() && github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '❌ Dataset validation failed. Please check the workflow logs for details and ensure:\n\n1. Your `schema.json` is valid JSON Schema\n2. All entries in `data.jsonl` conform to the schema\n3. Required files (`schema.json`, `data.jsonl`, `README.md`) are present\n\nRun validation locally with:\n```bash\npython scripts/validate.py datasets/your-dataset-name\n```'
+          })
+    
+    - name: Comment on PR success
+      if: success() && github.event_name == 'pull_request' && steps.changed-datasets.outputs.has_changes == 'true'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '✅ All dataset validations passed! Your changes are ready for review.'
+          })

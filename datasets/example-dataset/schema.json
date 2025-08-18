@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Example Dataset Schema",
+  "description": "Schema for validating entries in the example dataset",
+  "type": "object",
+  "required": ["name", "social_links", "sources"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the person or entity",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "social_links": {
+      "type": "array",
+      "description": "List of social media or web links",
+      "items": {
+        "type": "object",
+        "required": ["platform", "url"],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "The platform name (e.g., Twitter, LinkedIn, GitHub)",
+            "enum": ["Twitter", "LinkedIn", "GitHub", "Facebook", "Instagram", "YouTube", "Website", "Other"]
+          },
+          "url": {
+            "type": "string",
+            "description": "The full URL to the profile or page",
+            "format": "uri",
+            "pattern": "^https?://"
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "Whether this link has been verified",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 0,
+      "uniqueItems": true
+    },
+    "sources": {
+      "type": "array",
+      "description": "List of sources for this information",
+      "items": {
+        "type": "object",
+        "required": ["title", "url"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title or description of the source",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to the source",
+            "format": "uri",
+            "pattern": "^https?://"
+          },
+          "accessed_date": {
+            "type": "string",
+            "description": "Date when the source was accessed",
+            "format": "date"
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of source",
+            "enum": ["article", "book", "website", "paper", "video", "other"]
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "quote": {
+      "type": "string",
+      "description": "An optional quote from or about the entity",
+      "maxLength": 500
+    },
+    "tags": {
+      "type": "array",
+      "description": "Optional tags for categorization",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 50
+      },
+      "uniqueItems": true
+    },
+    "last_updated": {
+      "type": "string",
+      "description": "ISO 8601 datetime of last update",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}
