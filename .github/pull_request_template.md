@@ -1,7 +1,10 @@
 ## Dataset Update
 
 ### Dataset Name
-<!-- Which dataset are you updating? -->
+<!-- Which dataset are you updating? Provide the path relative to the repo root -->
+`datasets/<dataset-folder>`
+Example: `datasets/ai-rights-opposition`
+
 `datasets/`
 
 ### Checklist
