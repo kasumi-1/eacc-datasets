@@ -135,7 +135,7 @@ For questions or corrections:
 ## Citation
 
 If you use this dataset in research or reporting, please cite as:
-```
+```text
 AI Rights Opposition Dataset. (2025). 
 eacc-datasets
 Retrieved from https://github.com/semperai/eacc-datasets/tree/master/datasets/ai-rights-opposition

@@ -118,7 +118,7 @@ After you submit, GitHub will automatically check your entry:
 
 ### Template for Asking for Help
 
-```
+```text
 I'm trying to add [Name] to the [dataset name] dataset.
 
 Here's my JSON:
