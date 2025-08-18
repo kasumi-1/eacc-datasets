@@ -8,7 +8,7 @@ on:
       - '.github/workflows/validate-datasets.yml'
   push:
     branches:
-      - main
+      - master
     paths:
       - 'datasets/**'
       - 'scripts/validate.py'
@@ -40,7 +40,7 @@ jobs:
           # For PRs, compare against the base branch
           git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "^datasets/" | cut -d'/' -f1-2 | sort -u > changed_datasets.txt
         else
-          # For pushes to main, check the last commit
+          # For pushes to master, check the last commit
           git diff --name-only HEAD~1 HEAD | grep "^datasets/" | cut -d'/' -f1-2 | sort -u > changed_datasets.txt
         fi
         
@@ -79,10 +79,10 @@ jobs:
           echo "✅ All datasets validated successfully"
         fi
     
-    - name: Validate all datasets (on push to main)
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    - name: Validate all datasets (on push to master)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
-        echo "Running full validation on main branch..."
+        echo "Running full validation on master branch..."
         validation_failed=false
         
         for dataset_dir in datasets/*/; do
