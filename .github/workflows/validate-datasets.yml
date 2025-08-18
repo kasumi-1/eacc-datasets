@@ -16,6 +16,9 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     
     steps:
     - name: Checkout repository
@@ -31,7 +34,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install jsonschema
+        pip install -r requirements.txt
     
     - name: Get changed datasets
       id: changed-datasets
@@ -113,21 +116,31 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '❌ Dataset validation failed. Please check the workflow logs for details and ensure:\n\n1. Your `schema.json` is valid JSON Schema\n2. All entries in `data.jsonl` conform to the schema\n3. Required files (`schema.json`, `data.jsonl`, `README.md`) are present\n\nRun validation locally with:\n```bash\npython scripts/validate.py datasets/your-dataset-name\n```'
-          })
+          try {
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Dataset validation failed. Please check the workflow logs for details and ensure:\n\n1. Your JSON is properly formatted (one entry per line)\n2. All entries conform to the schema\n3. Required files are present\n\nRun validation locally with:\n```bash\npython scripts/validate.py datasets/your-dataset-name\n```'
+            })
+          } catch (error) {
+            console.log('Could not create comment:', error.message)
+            console.log('This is likely due to permissions. The validation still failed - check the Actions tab for details.')
+          }
     
     - name: Comment on PR success
       if: success() && github.event_name == 'pull_request' && steps.changed-datasets.outputs.has_changes == 'true'
       uses: actions/github-script@v6
       with:
         script: |
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: '✅ All dataset validations passed! Your changes are ready for review.'
-          })
+          try {
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ All dataset validations passed! Your changes are ready for review.'
+            })
+          } catch (error) {
+            console.log('Could not create comment:', error.message)
+            console.log('This is likely due to permissions. The validation passed successfully!')
+          }
